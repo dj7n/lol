@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Rare Names" />
+<title>Rare Username Finder</title>
+<style>
+  :root{
+    --bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--txt:#f2f2f7;--sub:#8e8e93;
+    --accent:#0a84ff;--green:#30d158;--red:#ff453a;--yellow:#ffd60a;--radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:8px 0 2px;}
+  .sub{color:var(--sub);font-size:14px;margin:0 0 18px;}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  .label{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--sub);margin-bottom:8px;font-weight:600;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{flex:1;min-width:calc(50% - 8px);padding:12px 8px;border-radius:12px;background:var(--card2);
+    text-align:center;font-size:14px;font-weight:600;border:2px solid transparent;transition:.15s;}
+  .chip.on{background:rgba(10,132,255,.18);border-color:var(--accent);color:#7cb8ff;}
+  .seg{display:flex;background:var(--card2);border-radius:12px;padding:4px;gap:4px;}
+  .seg button{flex:1;padding:10px;border:0;background:transparent;color:var(--txt);font-size:14px;
+    font-weight:600;border-radius:9px;transition:.15s;}
+  .seg button.on{background:var(--accent);color:#fff;}
+  .gen{width:100%;padding:16px;border-radius:14px;border:0;font-size:17px;font-weight:700;
+    background:var(--accent);color:#fff;margin-top:4px;}
+  .gen:active{transform:scale(.98);opacity:.9;}
+  .gen:disabled{opacity:.5;}
+  .plats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .plat{display:flex;align-items:center;gap:8px;padding:11px;border-radius:12px;background:var(--card2);
+    font-size:14px;font-weight:600;border:2px solid transparent;}
+  .plat.on{border-color:var(--green);background:rgba(48,209,88,.12);}
+  .dot{width:18px;height:18px;border-radius:6px;border:2px solid var(--sub);flex-shrink:0;}
+  .plat.on .dot{background:var(--green);border-color:var(--green);}
+  .list{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
+  .item{background:var(--card);border-radius:14px;padding:14px;}
+  .item-top{display:flex;align-items:center;gap:10px;}
+  .name{font-size:19px;font-weight:800;letter-spacing:.5px;flex:1;word-break:break-all;}
+  .status{font-size:12px;font-weight:700;padding:6px 10px;border-radius:9px;}
+  .s-avail{background:rgba(48,209,88,.18);color:var(--green);}
+  .s-taken{background:rgba(255,69,58,.15);color:var(--red);}
+  .s-unk{background:rgba(255,214,10,.15);color:var(--yellow);}
+  .s-load{background:var(--card2);color:var(--sub);}
+  .results{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .res{font-size:11px;font-weight:700;padding:6px 9px;border-radius:8px;background:var(--card2);color:var(--sub);text-decoration:none;}
+  .res.a{background:rgba(48,209,88,.15);color:var(--green);}
+  .res.t{background:rgba(255,69,58,.12);color:var(--red);text-decoration:line-through;}
+  .res.u{background:rgba(255,214,10,.12);color:var(--yellow);}
+  .empty{text-align:center;color:var(--sub);padding:26px 0;font-size:14px;}
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);
+    transform:translateX(-50%) translateY(120%);background:var(--green);color:#000;font-weight:700;
+    padding:10px 18px;border-radius:999px;font-size:14px;transition:.25s;z-index:99;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .note{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.4;}
+</style>
+</head>
+<body>
+
+<h1>Untaken Usernames</h1>
+<p class="sub">Generates names, then checks which platforms they're free on.</p>
+
+<div class="card">
+  <div class="label">Length</div>
+  <div class="seg" id="lenSeg">
+    <button data-len="3">3 characters</button>
+    <button data-len="4" class="on">4 characters</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="label">Character set</div>
+  <div class="row" id="charSet">
+    <div class="chip" data-cs="lower">lowercase</div>
+    <div class="chip on" data-cs="mixed">mixed letters</div>
+    <div class="chip" data-cs="num">numbers</div>
+    <div class="chip" data-cs="leet">leet mix</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="label">Require available on</div>
+  <div class="plats" id="platSet">
+    <div class="plat on" data-p="instagram"><span class="dot"></span>Instagram</div>
+    <div class="plat on" data-p="tiktok"><span class="dot"></span>TikTok</div>
+    <div class="plat" data-p="github"><span class="dot"></span>GitHub</div>
+    <div class="plat" data-p="reddit"><span class="dot"></span>Reddit</div>
+    <div class="plat" data-p="telegram"><span class="dot"></span>Telegram</div>
+  </div>
+  <p class="note">Names must be free on every selected platform. Unchecked ones still get shown as info.</p>
+</div>
+
+<button class="gen" id="genBtn">Find untaken names</button>
+<div class="list" id="out"><div class="empty">Pick platforms, then tap find.</div></div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+/* ============================================================
+   OPTIONAL: put a Cloudflare Worker / proxy URL here for
+   reliable results on CORS-blocked platforms. Leave "" to use
+   direct endpoints (Instagram & TikTok work directly).
+   ============================================================ */
+const PROXY = "";
+
+const CHARS = {
+  lower:"abcdefghijklmnopqrstuvwxyz",
+  mixed:"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  num:"0123456789",
+  leet:"abcdeilnoprstuxz0189"
+};
+const VOWELS="aeiou", CONS="bcdfghjklmnpqrstvwxyz";
+const state = { len:4, cs:"mixed", plats:new Set(["instagram","tiktok"]) };
+
+/* ---------- UI wiring ---------- */
+document.querySelectorAll("#lenSeg button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#lenSeg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); state.len=+b.dataset.len;
+});
+document.querySelectorAll("#charSet .chip").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll("#charSet .chip").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on"); state.cs=c.dataset.cs;
+});
+document.querySelectorAll("#platSet .plat").forEach(p=>p.onclick=()=>{
+  const k=p.dataset.p;
+  if(state.plats.has(k)){state.plats.delete(k);p.classList.remove("on");}
+  else{state.plats.add(k);p.classList.add("on");}
+});
+
+/* ---------- name generation ---------- */
+const pick=s=>s[Math.floor(Math.random()*s.length)];
+function makeName(){
+  let chars=[];
+  for(let i=0;i<state.len;i++) chars.push(pick(CHARS[state.cs]));
+  const s=chars.join("");
+  if(/(.)\1\1/.test(s)) return makeName();
+  return s;
+}
+
+/* ---------- availability checks ---------- */
+// Each checker returns true (taken), false (free), or null (unknown)
+const withProxy = url => PROXY ? PROXY + "?url=" + encodeURIComponent(url) : url;
+
+async function headOk(url){
+  try{
+    const r = await fetch(withProxy(url), {method:"GET", credentials:"omit"});
+    return r.ok;
+  }catch{ return null; }
+}
+
+const CHECKERS = {
+  async instagram(name){
+    try{
+      const r = await fetch(withProxy(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${name}`),
+        {headers:{"x-ig-app-id":"936619743392459"}});
+      if(r.status===404) return false;
+      if(!r.ok) return null;
+      const j = await r.json();
+      const u = j?.data?.user;
+      if(u===undefined || u===null) return false;
+      return !!u.username;
+    }catch{ return null; }
+  },
+  async tiktok(name){
+    try{
+      const r = await fetch(withProxy(`https://www.tiktok.com/@${name}`), {method:"GET"});
+      if(r.status===404) return false;
+      if(!r.ok) return null;
+      const t = await r.text();
+      return !/couldn't find this account|page not available/i.test(t);
+    }catch{ return null; }
+  },
+  async github(name){
+    try{
+      const r = await fetch(withProxy(`https://api.github.com/users/${name}`));
+      if(r.status===404) return false;
+      if(!r.ok) return null;
+      return true;
+    }catch{ return null; }
+  },
+  async reddit(name){
+    try{
+      const r = await fetch(withProxy(`https://www.reddit.com/user/${name}/about.json`));
+      if(r.status===404) return false;
+      if(!r.ok) return null;
+      const j = await r.json();
+      return !j?.data?.is_available;
+    }catch{ return null; }
+  },
+  async telegram(name){
+    try{
+      const r = await fetch(withProxy(`https://t.me/${name}`), {method:"GET"});
+      if(r.status===404) return false;
+      if(!r.ok) return null;
+      return true;
+    }catch{ return null; }
+  }
+};
+
+const PROFILE_URL = {
+  instagram:n=>`https://instagram.com/${n}`,
+  tiktok:n=>`https://tiktok.com/@${n}`,
+  github:n=>`https://github.com/${n}`,
+  reddit:n=>`https://reddit.com/user/${n}`,
+  telegram:n=>`https://t.me/${n}`
+};
+
+/* ---------- main flow ---------- */
+const out = document.getElementById("out");
+const genBtn = document.getElementById("genBtn");
+
+async function evaluate(name){
+  const row = document.createElement("div");
+  row.className = "item";
+  row.innerHTML = `<div class="item-top">
+      <span class="name">${name}</span>
+      <span class="status s-load">checking…</span>
+    </div><div class="results"></div>`;
+  out.prepend(row);
+
+  const res = row.querySelector(".results");
+  const badge = row.querySelector(".status");
+  const verdict = {};
+  const all = Object.keys(CHECKERS);
+
+  for(const p of all){
+    verdict[p] = await CHECKERS[p](name);
+    const el = document.createElement("a");
+    el.className = "res";
+    el.href = PROFILE_URL[p](name);
+    el.target = "_blank";
+    el.textContent = p;
+    if(verdict[p]===false) el.classList.add("a");
+    if(verdict[p]===true) el.classList.add("t");
+    if(verdict[p]===null) el.classList.add("u");
+    res.appendChild(el);
+    await new Promise(r=>setTimeout(r, 250)); // be gentle
+  }
+
+  const required = [...state.plats];
+  const takenOnRequired = required.filter(p=>verdict[p]===true);
+  const freeOnAllRequired = required.length>0 && required.every(p=>verdict[p]===false);
+
+  if(takenOnRequired.length){
+    badge.className = "status s-taken";
+    badge.textContent = "taken: " + takenOnRequired.join(", ");
+  } else if(freeOnAllRequired){
+    badge.className = "status s-avail";
+    badge.textContent = "AVAILABLE ✓";
+    row.onclick = () => {
+      navigator.clipboard.writeText(name);
+      const t=document.getElementById("toast");t.classList.add("show");
+      setTimeout(()=>t.classList.remove("show"),1000);
+      if(navigator.vibrate) navigator.vibrate(10);
+    };
+  } else {
+    badge.className = "status s-unk";
+    badge.textContent = "unknown / check";
+  }
+  return freeOnAllRequired;
+}
+
+genBtn.onclick = async () => {
+  if(state.plats.size===0){ alert("Select at least one platform."); return; }
+  genBtn.disabled = true; genBtn.textContent = "searching…";
+  out.innerHTML = "";
+
+  const wanted = 8;
+  let found = 0, tries = 0;
+
+  while(found < wanted && tries < 40){
+    tries++;
+    const name = makeName();
+    const ok = await evaluate(name);
+    if(ok) found++;
+    // prune taken rows to keep it clean
+    if(!ok){
+      const taken = out.querySelector(".item .s-taken");
+      // (row already shows; keep them visible so you see rejects)
+    }
+  }
+
+  genBtn.disabled = false; genBtn.textContent = "Find untaken names";
+};
+</script>
+</body>
+</html>
